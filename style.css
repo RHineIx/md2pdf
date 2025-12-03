@@ -1,0 +1,117 @@
+/* --- المتغيرات الديناميكية (الافتراضية) --- */
+:root {
+    --doc-font-size: 12pt;
+    --doc-line-height: 1.7;
+}
+
+/* --- إعدادات عامة --- */
+* { box-sizing: border-box; }
+body { font-family: 'Cairo', sans-serif; }
+
+/* سكرول بار */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* --- عرض الهاتف (التبديل بين المحرر والمعاينة) --- */
+.mobile-show-preview #editor-panel { transform: translateX(-100%) !important; }
+.mobile-show-preview #preview-panel { transform: translateX(0) !important; z-index: 20; }
+
+@media (min-width: 1024px) {
+    #editor-panel, #preview-panel {
+        transform: none !important;
+        position: relative !important;
+        width: 50%;
+        display: flex !important;
+    }
+}
+
+/* --- ورقة A4 (في الشاشة فقط) --- */
+.a4-sheet {
+    width: 100%;
+    min-height: 297mm;
+    position: relative;
+    background: white;
+    /* الهوامش تأتي من ستايل الهيدر الديناميكي */
+    border-radius: 2px;
+}
+
+/* --- تنسيقات المحتوى الداخلي --- */
+#preview-container {
+    font-size: var(--doc-font-size);
+    line-height: var(--doc-line-height);
+}
+
+#preview-container[dir="rtl"] { direction: rtl; text-align: right; }
+#preview-container[dir="ltr"] { direction: ltr; text-align: left; }
+
+/* العناوين نسبية لحجم الخط الأساسي */
+#preview-container h1 { font-size: 2em; font-weight: 700; border-bottom: 2px solid #eee; padding-bottom: 0.5em; margin-bottom: 0.8em; color: #111; break-after: avoid; }
+#preview-container h2 { font-size: 1.5em; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.8em; color: #333; break-after: avoid; }
+#preview-container h3 { font-size: 1.25em; font-weight: 600; margin-top: 1.2em; margin-bottom: 0.5em; color: #555; break-after: avoid; }
+#preview-container p { margin-bottom: 1em; color: #333; }
+
+#preview-container ul, #preview-container ol { margin-bottom: 1em; padding-inline-start: 2em; }
+#preview-container ul { list-style-type: disc; }
+#preview-container ol { list-style-type: decimal; }
+
+#preview-container blockquote {
+    background: #f8fafc;
+    border-inline-start: 5px solid #4f46e5;
+    padding: 1em;
+    margin: 1.5em 0;
+    border-radius: 4px;
+    color: #555;
+    font-style: italic;
+    page-break-inside: avoid;
+}
+
+#preview-container table { 
+    width: 100%; border-collapse: collapse; margin: 1.5em 0; border: 1px solid #ddd;
+    page-break-inside: avoid;
+}
+#preview-container th { background: #f1f5f9; padding: 0.8em; border: 1px solid #ddd; font-weight: 700; }
+#preview-container td { padding: 0.8em; border: 1px solid #ddd; }
+#preview-container tr:nth-child(even) { background-color: #fafafa; }
+
+#preview-container pre { 
+    background: #1e293b; color: #fff; padding: 1em; 
+    border-radius: 6px; overflow-x: auto; direction: ltr; text-align: left; margin: 1.5em 0; 
+    page-break-inside: avoid;
+}
+#preview-container code { font-family: monospace; font-size: 0.9em; }
+
+/* فاصل الصفحات اليدوي */
+.page-break { border-bottom: 2px dashed #e2e8f0; margin: 2em 0; position: relative; }
+.page-break::after {
+    content: 'فاصل صفحات';
+    position: absolute; left: 50%; top: -0.8em; transform: translateX(-50%);
+    background: #fff; padding: 0 0.5em; color: #94a3b8; font-size: 0.8em;
+}
+
+/* --- إعدادات الطباعة (CRITICAL FIXES) --- */
+@media print {
+    /* 1. إجبار طباعة الألوان */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    
+    /* 2. إخفاء الواجهة */
+    .no-print, header, #editor-panel, #settings-modal { display: none !important; }
+    
+    /* 3. تنظيف الهيكل */
+    body, main, #preview-panel { 
+        margin: 0 !important; padding: 0 !important; width: 100% !important; height: auto !important; 
+        overflow: visible !important; display: block !important; background: white !important;
+    }
+    
+    /* 4. إلغاء هوامش الـ Div لكي تعمل هوامش الـ Page */
+    .a4-sheet {
+        width: 100% !important; margin: 0 !important; box-shadow: none !important; border: none !important; 
+        padding: 0 !important; 
+    }
+    
+    /* 5. الفاصل الحقيقي */
+    .page-break { border: none; margin: 0; height: 0; break-after: always; page-break-after: always; }
+    .page-break::after { display: none; }
+    
+    /* 6. الهوامش تأتي من @page في الستايل الديناميكي */
+}
