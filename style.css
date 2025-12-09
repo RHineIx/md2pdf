@@ -1,24 +1,25 @@
-/* --- المتغيرات الديناميكية (الافتراضية) --- */
+/* --- Dynamic variables (default values) --- */
 :root {
     --doc-font-size: 12pt;
     --doc-line-height: 1.7;
 }
 
-/* --- إعدادات عامة --- */
+/* --- Global reset --- */
 * { box-sizing: border-box; }
 body { font-family: 'Cairo', sans-serif; }
 
-/* سكرول بار */
+/* Scrollbar styling */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
-/* --- عرض الهاتف (التبديل بين المحرر والمعاينة) --- */
+/* --- Mobile: toggle editor/preview --- */
 .mobile-show-preview #editor-panel { transform: translateX(-100%) !important; }
 .mobile-show-preview #preview-panel { transform: translateX(0) !important; z-index: 20; }
 
 @media (min-width: 1024px) {
-    #editor-panel, #preview-panel {
+    #editor-panel,
+    #preview-panel {
         transform: none !important;
         position: relative !important;
         width: 50%;
@@ -26,35 +27,80 @@ body { font-family: 'Cairo', sans-serif; }
     }
 }
 
-/* --- ورقة A4 (في الشاشة فقط) --- */
+/* --- A4 sheet (on screen only) --- */
 .a4-sheet {
     width: 100%;
     min-height: 297mm;
     position: relative;
     background: white;
-    /* الهوامش تأتي من ستايل الهيدر الديناميكي */
     border-radius: 2px;
 }
 
-/* --- تنسيقات المحتوى الداخلي --- */
+/* --- Preview content typography --- */
 #preview-container {
     font-size: var(--doc-font-size);
     line-height: var(--doc-line-height);
 }
 
+/* Base direction controlled by script, but keep RTL as default */
 #preview-container[dir="rtl"] { direction: rtl; text-align: right; }
 #preview-container[dir="ltr"] { direction: ltr; text-align: left; }
 
-/* العناوين نسبية لحجم الخط الأساسي */
-#preview-container h1 { font-size: 2em; font-weight: 700; border-bottom: 2px solid #eee; padding-bottom: 0.5em; margin-bottom: 0.8em; color: #111; break-after: avoid; }
-#preview-container h2 { font-size: 1.5em; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.8em; color: #333; break-after: avoid; }
-#preview-container h3 { font-size: 1.25em; font-weight: 600; margin-top: 1.2em; margin-bottom: 0.5em; color: #555; break-after: avoid; }
-#preview-container p { margin-bottom: 1em; color: #333; }
+/* Headings */
+#preview-container h1 {
+    font-size: 2em;
+    font-weight: 700;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0.5em;
+    margin-top: 0;
+    margin-bottom: 0.8em;
+    color: #0f172a;
+    break-after: avoid;
+}
+#preview-container h2 {
+    font-size: 1.5em;
+    font-weight: 700;
+    margin-top: 1.5em;
+    margin-bottom: 0.8em;
+    color: #111827;
+    break-after: avoid;
+}
+#preview-container h3 {
+    font-size: 1.25em;
+    font-weight: 600;
+    margin-top: 1.2em;
+    margin-bottom: 0.5em;
+    color: #374151;
+    break-after: avoid;
+}
+#preview-container h4,
+#preview-container h5,
+#preview-container h6 {
+    font-weight: 600;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    color: #4b5563;
+    break-after: avoid;
+}
 
-#preview-container ul, #preview-container ol { margin-bottom: 1em; padding-inline-start: 2em; }
+/* Paragraphs & lists */
+#preview-container p {
+    margin-bottom: 1em;
+    color: #1f2933;
+}
+#preview-container ul,
+#preview-container ol {
+    margin-bottom: 1em;
+    padding-inline-start: 2em;
+}
 #preview-container ul { list-style-type: disc; }
 #preview-container ol { list-style-type: decimal; }
 
+#preview-container li {
+    margin-bottom: 0.25em;
+}
+
+/* Blockquote */
 #preview-container blockquote {
     background: #f8fafc;
     border-inline-start: 5px solid #4f46e5;
@@ -66,52 +112,151 @@ body { font-family: 'Cairo', sans-serif; }
     page-break-inside: avoid;
 }
 
-#preview-container table { 
-    width: 100%; border-collapse: collapse; margin: 1.5em 0; border: 1px solid #ddd;
+/* Tables */
+#preview-container table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5em 0;
+    border: 1px solid #e5e7eb;
     page-break-inside: avoid;
 }
-#preview-container th { background: #f1f5f9; padding: 0.8em; border: 1px solid #ddd; font-weight: 700; }
-#preview-container td { padding: 0.8em; border: 1px solid #ddd; }
-#preview-container tr:nth-child(even) { background-color: #fafafa; }
+#preview-container th {
+    background: #f1f5f9;
+    padding: 0.8em;
+    border: 1px solid #e5e7eb;
+    font-weight: 700;
+    text-align: center;
+}
+#preview-container td {
+    padding: 0.8em;
+    border: 1px solid #e5e7eb;
+}
+#preview-container tr:nth-child(even) {
+    background-color: #f9fafb;
+}
 
-#preview-container pre { 
-    background: #1e293b; color: #fff; padding: 1em; 
-    border-radius: 6px; overflow-x: auto; direction: ltr; text-align: left; margin: 1.5em 0; 
+/* Code blocks */
+#preview-container pre {
+    background: #020617;
+    color: #e5e7eb;
+    padding: 1em;
+    border-radius: 6px;
+    overflow-x: auto;
+    direction: ltr;
+    text-align: left;
+    margin: 1.5em 0;
     page-break-inside: avoid;
 }
-#preview-container code { font-family: monospace; font-size: 0.9em; }
+/* Code inside pre is styled by highlight.js */
+#preview-container pre code {
+    font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+    font-size: 0.9em;
+}
 
-/* فاصل الصفحات اليدوي */
-.page-break { border-bottom: 2px dashed #e2e8f0; margin: 2em 0; position: relative; }
+/* Inline code */
+#preview-container code:not(pre code) {
+    font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+    font-size: 0.9em;
+    background: #e5e7eb;
+    color: #b91c1c;
+    padding: 0.1em 0.3em;
+    border-radius: 4px;
+}
+
+/* Links */
+#preview-container a {
+    color: #2563eb;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+}
+#preview-container a:hover {
+    color: #1d4ed8;
+}
+
+/* Images */
+#preview-container img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1.25em auto;
+    border-radius: 4px;
+}
+
+/* Bold & italic */
+#preview-container strong { font-weight: 700; }
+#preview-container em { font-style: italic; }
+
+/* Direction helper for Latin blocks (applied via JS when needed) */
+.ltr-block {
+    direction: ltr !important;
+    text-align: left !important;
+}
+
+/* Manual page break placeholder (screen only) */
+.page-break {
+    border-bottom: 2px dashed #e2e8f0;
+    margin: 2em 0;
+    position: relative;
+}
 .page-break::after {
     content: 'فاصل صفحات';
-    position: absolute; left: 50%; top: -0.8em; transform: translateX(-50%);
-    background: #fff; padding: 0 0.5em; color: #94a3b8; font-size: 0.8em;
+    position: absolute;
+    left: 50%;
+    top: -0.8em;
+    transform: translateX(-50%);
+    background: #ffffff;
+    padding: 0 0.5em;
+    color: #94a3b8;
+    font-size: 0.8em;
 }
 
-/* --- إعدادات الطباعة (CRITICAL FIXES) --- */
+/* --- Print rules (critical for PDF export) --- */
 @media print {
-    /* 1. إجبار طباعة الألوان */
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    
-    /* 2. إخفاء الواجهة */
-    .no-print, header, #editor-panel, #settings-modal { display: none !important; }
-    
-    /* 3. تنظيف الهيكل */
-    body, main, #preview-panel { 
-        margin: 0 !important; padding: 0 !important; width: 100% !important; height: auto !important; 
-        overflow: visible !important; display: block !important; background: white !important;
+    /* Force color printing for background elements */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
-    
-    /* 4. إلغاء هوامش الـ Div لكي تعمل هوامش الـ Page */
+
+    /* Hide UI elements */
+    .no-print,
+    header,
+    #editor-panel,
+    #settings-modal {
+        display: none !important;
+    }
+
+    /* Clean layout for printing */
+    body,
+    main,
+    #preview-panel {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+        display: block !important;
+        background: white !important;
+    }
+
+    /* Remove extra padding/margins: margins come from @page only */
     .a4-sheet {
-        width: 100% !important; margin: 0 !important; box-shadow: none !important; border: none !important; 
-        padding: 0 !important; 
+        width: 100% !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
     }
-    
-    /* 5. الفاصل الحقيقي */
-    .page-break { border: none; margin: 0; height: 0; break-after: always; page-break-after: always; }
-    .page-break::after { display: none; }
-    
-    /* 6. الهوامش تأتي من @page في الستايل الديناميكي */
+
+    /* Real page break */
+    .page-break {
+        border: none;
+        margin: 0;
+        height: 0;
+        break-after: always;
+        page-break-after: always;
+    }
+    .page-break::after {
+        display: none;
+    }
 }
