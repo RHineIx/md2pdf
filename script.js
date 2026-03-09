@@ -1,4 +1,6 @@
-// Utility: Debounce function to improve performance
+/**
+ * Utility: Debounce function to improve performance
+ */
 const debounce = (func, wait) => {
     let timeout;
     return function executedFunction(...args) {
@@ -11,60 +13,40 @@ const debounce = (func, wait) => {
     };
 };
 
-const UI = {
-    editor: document.getElementById('markdown-input'),
-    preview: document.getElementById('preview-container'),
-    
-    // Tabs
-    tabEditor: document.getElementById('tab-editor'),
-    tabPreview: document.getElementById('tab-preview'),
-    
-    // Header
-    btnDir: document.getElementById('btn-direction'),
-    iconDir: document.getElementById('icon-direction'),
-    btnSettings: document.getElementById('btn-settings'),
-    
-    // Editor Actions
-    btnPaste: document.getElementById('btn-paste'),
-    btnClear: document.getElementById('btn-clear'),
-    toolbarButtons: document.querySelectorAll('.md-toolbar-btn'),
-    btnUpload: document.getElementById('btn-upload'),
-    fileInput: document.getElementById('file-upload'),
-    
-    // Settings
-    modal: document.getElementById('settings-modal'),
-    modalContent: document.getElementById('modal-content'),
-    btnCloseSettings: document.getElementById('btn-close-settings'),
-    btnSaveSettings: document.getElementById('btn-save-settings'),
-    btnsLine: document.querySelectorAll('.setting-btn-line'),
-    printStyle: document.getElementById('dynamic-print-style'),
-    
-    // Settings Inputs
-    inputFontSize: document.getElementById('input-font-size'),
-    marginTop: document.getElementById('margin-top'),
-    marginBottom: document.getElementById('margin-bottom'),
-    marginRight: document.getElementById('margin-right'),
-    marginLeft: document.getElementById('margin-left'),
+/**
+ * StorageManager: Handles local storage operations securely.
+ */
+class StorageManager {
+    static CONTENT_KEY = 'markdown-studio-content-v4';
+    static SETTINGS_KEY = 'markdown-studio-settings-v5'; // Bumped version for new schema
 
-    state: {
-        mT: 20, mB: 20, mR: 20, mL: 20,
-        fontSize: 12,
-        lineHeight: 1.7,
-        baseDir: 'rtl',
-        storageKeyContent: 'markdown-studio-content-v3',
-        storageKeySettings: 'markdown-studio-settings-v2'
-    },
+    static saveContent(content) {
+        try { localStorage.setItem(this.CONTENT_KEY, content); } catch (e) { console.error("Storage limit reached"); }
+    }
 
-    init() {
-        this.configureMarked();
-        this.loadSettings();
-        this.updatePrintStyle();
-        this.applySettingsButtonsState();
-        this.loadContent();
-        this.events();
-    },
+    static loadContent() {
+        try { return localStorage.getItem(this.CONTENT_KEY); } catch (e) { return null; }
+    }
 
-    configureMarked() {
+    static saveSettings(settings) {
+        try { localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {}
+    }
+
+    static loadSettings(defaultSettings) {
+        try {
+            const raw = localStorage.getItem(this.SETTINGS_KEY);
+            return raw ? { ...defaultSettings, ...JSON.parse(raw) } : defaultSettings;
+        } catch (e) {
+            return defaultSettings;
+        }
+    }
+}
+
+/**
+ * MarkdownEngine: Handles Markdown parsing and sanitization.
+ */
+class MarkdownEngine {
+    static init() {
         if (typeof marked !== 'undefined') {
             marked.setOptions({
                 breaks: true,
@@ -82,287 +64,408 @@ const UI = {
                 }
             });
         }
-    },
+    }
 
-    // Rendering Logic with Security (DOMPurify)
-    render() {
-        let text = this.editor.value || '';
+    static process(text) {
+        let processedText = text || '';
+        processedText = processedText.replace(/^---page---$/gm, '<div class="page-break"></div>');
         
-        // Handle page breaks
-        text = text.replace(/^---page---$/gm, '<div class="page-break"></div>');
+        let rawHtml = (typeof marked !== 'undefined') ? marked.parse(processedText) : processedText;
         
-        // Convert to HTML
-        let rawHtml = (typeof marked !== 'undefined') ? marked.parse(text) : text;
-        
-        // Sanitize (Security Fix)
         if (typeof DOMPurify !== 'undefined') {
             rawHtml = DOMPurify.sanitize(rawHtml);
         }
+        return rawHtml;
+    }
+}
 
-        this.preview.innerHTML = rawHtml;
-        this.preview.setAttribute('dir', this.state.baseDir);
-        this.adjustBlockDirections();
+/**
+ * DocumentFormatter: Handles RTL/LTR logic and layout adjustments.
+ */
+class DocumentFormatter {
+    static isRTL(text) {
+        const rtlChars = '\u0591-\u07FF\u200F\u202B\u202E\u4E00-\u9FFF\uFB1D-\uFDFD\uFE70-\uFEFC';
+        const ltrChars = 'A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02B8\u0300-\u0590\u0800-\u1FFF\u200E\u202A\u202D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFAFF\uFE00-\uFE1F\uFE30-\uFE6F\uFF00-\uFFEF';
         
-        // Syntax Highlight
-        if (window.hljs) {
-            this.preview.querySelectorAll('pre code').forEach((block) => {
-                hljs.highlightElement(block);
-            });
-        }
-    },
+        const regex = new RegExp(`^[^${ltrChars}${rtlChars}]*([${rtlChars}])`);
+        return regex.test(text);
+    }
 
-    adjustBlockDirections() {
-        const arabicRegex = /[\u0600-\u06FF]/;
-        const latinRegex = /[A-Za-z]/;
-        const elements = this.preview.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6');
-        
+    static adjustBlockDirections(container) {
+        const elements = container.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6');
         elements.forEach(el => {
             const text = el.innerText || el.textContent || '';
-            const hasArabic = arabicRegex.test(text);
-            const hasLatin = latinRegex.test(text);
-            
+            if (!text.trim()) return; 
+
             el.removeAttribute('dir');
             el.classList.remove('ltr-block');
             
-            if (hasArabic && !hasLatin) {
+            if (this.isRTL(text)) {
                 el.setAttribute('dir', 'rtl');
-            } else if (hasLatin && !hasArabic) {
+            } else {
                 el.setAttribute('dir', 'ltr');
                 el.classList.add('ltr-block');
             }
         });
-    },
+    }
 
-    updatePrintStyle() {
-        this.printStyle.innerHTML = `
+    static updatePrintStyle(styleElement, settings) {
+        // Calculate dynamic dimensions based on page size and orientation
+        const sizes = {
+            'A4': { w: 210, h: 297 },
+            'Letter': { w: 215.9, h: 279.4 },
+            'Legal': { w: 215.9, h: 355.6 }
+        };
+        
+        let w = sizes[settings.pageSize]?.w || 210;
+        let h = sizes[settings.pageSize]?.h || 297;
+        
+        if (settings.orientation === 'landscape') {
+            const temp = w;
+            w = h;
+            h = temp;
+        }
+
+        styleElement.innerHTML = `
             @page { 
-                size: A4; 
-                margin-top: ${this.state.mT}mm;
-                margin-bottom: ${this.state.mB}mm;
-                margin-left: ${this.state.mL}mm;
-                margin-right: ${this.state.mR}mm;
+                size: ${settings.pageSize} ${settings.orientation}; 
+                margin-top: ${settings.mT}mm;
+                margin-bottom: ${settings.mB}mm;
+                margin-left: ${settings.mL}mm;
+                margin-right: ${settings.mR}mm;
             }
             .a4-sheet { 
-                padding-top: ${this.state.mT}mm;
-                padding-bottom: ${this.state.mB}mm;
-                padding-left: ${this.state.mL}mm;
-                padding-right: ${this.state.mR}mm;
+                padding-top: ${settings.mT}mm;
+                padding-bottom: ${settings.mB}mm;
+                padding-left: ${settings.mL}mm;
+                padding-right: ${settings.mR}mm;
             }
             :root {
-                --doc-font-size: ${this.state.fontSize}pt;
-                --doc-line-height: ${this.state.lineHeight};
+                --doc-font-size: ${settings.fontSize}pt;
+                --doc-line-height: ${settings.lineHeight};
+                --page-width: ${w}mm;
+                --page-height: ${h}mm;
+                --doc-font-family: ${settings.fontFamily}, sans-serif;
             }
         `;
-        if(this.inputFontSize) this.inputFontSize.value = this.state.fontSize;
-        this.saveSettings();
-    },
+    }
+}
 
-    events() {
-        // Debounced Render for performance
+/**
+ * AppController: Glues the UI and logic together.
+ */
+class AppController {
+    constructor() {
+        this.defaultState = {
+            mT: 20, mB: 20, mR: 20, mL: 20,
+            fontSize: 12,
+            lineHeight: 1.7,
+            baseDir: 'rtl',
+            marginLock: false,
+            pageSize: 'A4',
+            orientation: 'portrait',
+            fontFamily: "'Cairo'"
+        };
+        
+        this.state = StorageManager.loadSettings(this.defaultState);
+
+        this.cacheDOM();
+        this.init();
+    }
+
+    cacheDOM() {
+        this.editor = document.getElementById('markdown-input');
+        this.preview = document.getElementById('preview-container');
+        this.printStyle = document.getElementById('dynamic-print-style');
+        
+        // Settings UI Inputs
+        this.inputs = {
+            mT: document.getElementById('margin-top'),
+            mB: document.getElementById('margin-bottom'),
+            mR: document.getElementById('margin-right'),
+            mL: document.getElementById('margin-left'),
+            fontSize: document.getElementById('input-font-size'),
+            pageSize: document.getElementById('input-page-size'),
+            orientation: document.getElementById('input-orientation'),
+            fontFamily: document.getElementById('input-font-family')
+        };
+        
+        // Settings Buttons & Icons
+        this.btnsLine = document.querySelectorAll('.setting-btn-line');
+        this.btnLockMargins = document.getElementById('btn-lock-margins');
+        this.iconLockMargins = document.getElementById('icon-lock-margins');
+        this.textPagePreview = document.getElementById('text-page-preview');
+        this.btnResetSettings = document.getElementById('btn-reset-settings');
+    }
+
+    async init() {
+        MarkdownEngine.init();
+        this.applySettingsToUI();
+        DocumentFormatter.updatePrintStyle(this.printStyle, this.state);
+        await this.loadInitialContent();
+        this.bindEvents();
+    }
+
+    render() {
+        const rawHtml = MarkdownEngine.process(this.editor.value);
+        this.preview.innerHTML = rawHtml;
+        this.preview.setAttribute('dir', this.state.baseDir);
+        
+        DocumentFormatter.adjustBlockDirections(this.preview);
+        
+        if (window.hljs) {
+            this.preview.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
+        }
+    }
+
+    async loadInitialContent() {
+        const saved = StorageManager.loadContent();
+        if (saved && saved.trim().length > 0) {
+            this.editor.value = saved;
+            this.render();
+        } else {
+            try {
+                const res = await fetch('default.md');
+                this.editor.value = res.ok ? await res.text() : '# Welcome';
+            } catch (err) { 
+                this.editor.value = '# Welcome'; 
+            }
+            this.render();
+        }
+    }
+
+    bindEvents() {
+        // Editor Input with Debounce
         const debouncedRender = debounce(() => {
             this.render();
-            this.saveContent();
-        }, 300); // Wait 300ms after last keystroke
-
+            StorageManager.saveContent(this.editor.value);
+        }, 300);
         this.editor.addEventListener('input', debouncedRender);
 
-        // UI Events
-        this.tabEditor.addEventListener('click', () => {
-            document.body.classList.remove('mobile-show-preview');
-            this.updateTabStyles(true);
-        });
-        this.tabPreview.addEventListener('click', () => {
-            document.body.classList.add('mobile-show-preview');
-            this.updateTabStyles(false);
-        });
+        // Binding Settings Form Events
+        this.bindSettingsEvents();
 
-        // Direction Toggle
-        this.btnDir.addEventListener('click', () => {
-            this.state.baseDir = this.state.baseDir === 'rtl' ? 'ltr' : 'rtl';
-            this.preview.setAttribute('dir', this.state.baseDir);
-            this.iconDir.textContent = this.state.baseDir === 'ltr' ? 'format_textdirection_l_to_r' : 'format_textdirection_r_to_l';
-            this.adjustBlockDirections();
-            this.saveSettings();
-        });
+        this.bindModalsAndTabs();
+        this.bindEditorActions();
+    }
 
-        // File Upload
-        if (this.btnUpload && this.fileInput) {
-            this.btnUpload.addEventListener('click', () => this.fileInput.click());
-            this.fileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const content = e.target.result;
-                    const start = this.editor.selectionStart;
-                    const end = this.editor.selectionEnd;
-                    const val = this.editor.value;
-                    
-                    if (typeof start === 'number' && typeof end === 'number') {
-                         this.editor.value = val.substring(0, start) + content + val.substring(end);
-                         this.editor.selectionStart = this.editor.selectionEnd = start + content.length;
+    bindSettingsEvents() {
+        // Margins Binding with Lock Logic
+        ['mT', 'mB', 'mR', 'mL'].forEach(key => {
+            if (this.inputs[key]) {
+                this.inputs[key].addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value) || 0;
+                    if (this.state.marginLock) {
+                        this.state.mT = this.state.mB = this.state.mR = this.state.mL = val;
+                        ['mT', 'mB', 'mR', 'mL'].forEach(k => {
+                            if (this.inputs[k]) this.inputs[k].value = val;
+                        });
                     } else {
-                        this.editor.value += content;
+                        this.state[key] = val;
                     }
-                    this.editor.focus();
-                    this.render(); 
-                    this.saveContent();
-                    this.fileInput.value = '';
-                };
-                reader.readAsText(file);
-            });
-        }
-
-        // Paste
-        if (this.btnPaste) {
-            this.btnPaste.addEventListener('click', async () => {
-                try {
-                    const text = await navigator.clipboard.readText();
-                    const start = this.editor.selectionStart;
-                    const end = this.editor.selectionEnd;
-                    const val = this.editor.value;
-                    this.editor.value = val.substring(0, start) + text + val.substring(end);
-                    this.editor.selectionStart = this.editor.selectionEnd = start + text.length;
-                    this.editor.focus();
-                    this.render();
-                    this.saveContent();
-                } catch (err) { alert('Clipboard access denied'); }
-            });
-        }
-
-        // Clear
-        if (this.btnClear) {
-            this.btnClear.addEventListener('click', () => {
-                if (this.editor.value && confirm('مسح كل المحتوى؟')) {
-                    this.editor.value = '';
-                    this.render();
-                    this.saveContent();
-                }
-            });
-        }
-
-        // Toolbar
-        if (this.toolbarButtons) {
-            this.toolbarButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const action = btn.dataset.action;
-                    if (action) this.applyMarkdownAction(action);
+                    this.updateSettings();
                 });
-            });
-        }
-
-        // Modal Logic
-        const openSettings = () => {
-            this.modal.classList.remove('hidden');
-            this.modal.classList.add('flex');
-            this.applySettingsButtonsState();
-            requestAnimationFrame(() => {
-                this.modal.classList.remove('opacity-0');
-                this.modalContent.classList.remove('scale-95');
-                this.modalContent.classList.add('scale-100');
-            });
-        };
-        const closeSettings = () => {
-            this.modal.classList.add('opacity-0');
-            this.modalContent.classList.remove('scale-100');
-            this.modalContent.classList.add('scale-95');
-            setTimeout(() => {
-                this.modal.classList.remove('flex');
-                this.modal.classList.add('hidden');
-            }, 200);
-        };
-
-        this.btnSettings.addEventListener('click', openSettings);
-        this.btnCloseSettings.addEventListener('click', closeSettings);
-        this.btnSaveSettings.addEventListener('click', closeSettings);
-        this.modal.addEventListener('click', (e) => {
-            if (e.target === this.modal) closeSettings();
+            }
         });
 
-        // Settings Inputs
-        const marginInputs = [
-            { el: this.marginTop, key: 'mT' },
-            { el: this.marginBottom, key: 'mB' },
-            { el: this.marginLeft, key: 'mL' },
-            { el: this.marginRight, key: 'mR' }
-        ];
-        marginInputs.forEach(item => {
-            item.el.addEventListener('input', (e) => {
-                this.state[item.key] = e.target.value;
-                this.updatePrintStyle();
-            });
+        // Other Dropdowns and Number Inputs
+        ['fontSize', 'pageSize', 'orientation', 'fontFamily'].forEach(key => {
+            if (this.inputs[key]) {
+                this.inputs[key].addEventListener('input', (e) => {
+                    this.state[key] = key === 'fontSize' ? (parseFloat(e.target.value) || 0) : e.target.value;
+                    this.updateSettings();
+                    if (key === 'pageSize') this.applySettingsToUI(); // update mini A4 text
+                });
+            }
         });
 
-        this.inputFontSize.addEventListener('input', (e) => {
-            this.state.fontSize = e.target.value;
-            this.updatePrintStyle();
-        });
-
+        // Line Height Buttons
         this.btnsLine.forEach(btn => {
             btn.addEventListener('click', () => {
                 this.state.lineHeight = btn.dataset.val;
-                this.updatePrintStyle();
-                this.applySettingsButtonsState();
+                this.updateSettings();
+                this.applySettingsToUI();
             });
         });
-    },
 
-    applySettingsButtonsState() {
-        if(this.marginTop) this.marginTop.value = this.state.mT;
-        if(this.marginBottom) this.marginBottom.value = this.state.mB;
-        if(this.marginLeft) this.marginLeft.value = this.state.mL;
-        if(this.marginRight) this.marginRight.value = this.state.mR;
-        if(this.inputFontSize) this.inputFontSize.value = this.state.fontSize;
+        // Lock Margins Button toggle
+        this.btnLockMargins?.addEventListener('click', () => {
+            this.state.marginLock = !this.state.marginLock;
+            
+            // If locking, force all to match 'margin-top' immediately
+            if(this.state.marginLock) {
+                const val = this.state.mT;
+                this.state.mB = this.state.mR = this.state.mL = val;
+            }
+            
+            this.applySettingsToUI();
+            this.updateSettings();
+        });
 
+        // Reset Settings Button
+        this.btnResetSettings?.addEventListener('click', () => {
+            if(confirm('هل أنت متأكد من استعادة الإعدادات الافتراضية للتنسيق؟')) {
+                // Keep the text direction but reset print layout
+                const currentDir = this.state.baseDir;
+                this.state = { ...this.defaultState, baseDir: currentDir };
+                this.applySettingsToUI();
+                this.updateSettings();
+            }
+        });
+    }
+
+    updateSettings() {
+        DocumentFormatter.updatePrintStyle(this.printStyle, this.state);
+        StorageManager.saveSettings(this.state);
+    }
+
+    applySettingsToUI() {
+        // Update basic inputs
+        Object.keys(this.inputs).forEach(key => {
+            if(this.inputs[key]) this.inputs[key].value = this.state[key];
+        });
+
+        // Update Line Height active state
         this.btnsLine.forEach(btn => {
             const isActive = String(btn.dataset.val) === String(this.state.lineHeight);
             btn.className = isActive
                 ? "setting-btn-line flex-1 py-1.5 text-sm bg-white shadow-sm font-bold text-indigo-700 rounded-md transition border border-indigo-100"
                 : "setting-btn-line flex-1 py-1.5 text-sm rounded-md transition hover:bg-gray-200 text-gray-600";
         });
-    },
 
-    updateTabStyles(isEditor) {
-        const activeClass = "px-3 py-1 text-xs font-bold shadow-sm bg-white text-slate-800 rounded-md transition-all";
-        const inactiveClass = "px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-700 transition-all";
+        // Update Lock Visuals
+        if (this.iconLockMargins) {
+            this.iconLockMargins.textContent = this.state.marginLock ? 'link' : 'link_off';
+        }
+        if (this.btnLockMargins) {
+            this.btnLockMargins.classList.toggle('text-indigo-600', this.state.marginLock);
+            this.btnLockMargins.classList.toggle('bg-indigo-50', this.state.marginLock);
+            this.btnLockMargins.classList.toggle('border-indigo-200', this.state.marginLock);
+            
+            this.btnLockMargins.classList.toggle('text-gray-400', !this.state.marginLock);
+            this.btnLockMargins.classList.toggle('bg-white', !this.state.marginLock);
+            this.btnLockMargins.classList.toggle('border-gray-200', !this.state.marginLock);
+        }
+
+        // Update Mini Page Size text
+        if (this.textPagePreview) {
+            this.textPagePreview.textContent = this.state.pageSize;
+        }
+    }
+
+    bindModalsAndTabs() {
+        // Direction toggle
+        document.getElementById('btn-direction')?.addEventListener('click', () => {
+            this.state.baseDir = this.state.baseDir === 'rtl' ? 'ltr' : 'rtl';
+            document.getElementById('icon-direction').textContent = this.state.baseDir === 'ltr' ? 'format_textdirection_l_to_r' : 'format_textdirection_r_to_l';
+            this.render();
+            this.updateSettings();
+        });
+
+        // Tabs
+        const updateTabs = (isEditor) => {
+            document.getElementById('tab-editor').className = isEditor ? "px-3 py-1 text-xs font-bold shadow-sm bg-white text-slate-800 rounded-md transition-all" : "px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-700 transition-all";
+            document.getElementById('tab-preview').className = !isEditor ? "px-3 py-1 text-xs font-bold shadow-sm bg-white text-slate-800 rounded-md transition-all" : "px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-700 transition-all";
+        };
+        document.getElementById('tab-editor')?.addEventListener('click', () => {
+            document.body.classList.remove('mobile-show-preview'); updateTabs(true);
+        });
+        document.getElementById('tab-preview')?.addEventListener('click', () => {
+            document.body.classList.add('mobile-show-preview'); updateTabs(false);
+        });
+
+        // Settings Modal
+        const modal = document.getElementById('settings-modal');
+        const modalContent = document.getElementById('modal-content');
         
-        this.tabEditor.className = isEditor ? activeClass : inactiveClass;
-        this.tabPreview.className = !isEditor ? activeClass : inactiveClass;
-    },
+        const closeSettings = () => {
+            modal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => { modal.classList.remove('flex'); modal.classList.add('hidden'); }, 200);
+        };
 
-    applyMarkdownAction(action) {
-        const textarea = this.editor;
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const val = textarea.value;
+        document.getElementById('btn-settings')?.addEventListener('click', () => {
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            this.applySettingsToUI();
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            });
+        });
+        
+        document.getElementById('btn-close-settings')?.addEventListener('click', closeSettings);
+        document.getElementById('btn-save-settings')?.addEventListener('click', closeSettings);
+        modal?.addEventListener('click', (e) => { if (e.target === modal) closeSettings(); });
+    }
+
+    bindEditorActions() {
+        // File Upload
+        const fileInput = document.getElementById('file-upload');
+        document.getElementById('btn-upload')?.addEventListener('click', () => fileInput?.click());
+        fileInput?.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => this.insertTextAtCursor(e.target.result);
+            reader.readAsText(file);
+        });
+
+        // Paste
+        document.getElementById('btn-paste')?.addEventListener('click', async () => {
+            try { this.insertTextAtCursor(await navigator.clipboard.readText()); } 
+            catch (err) { alert('صلاحية الوصول للحافظة مرفوضة'); }
+        });
+
+        // Clear
+        document.getElementById('btn-clear')?.addEventListener('click', () => {
+            if (this.editor.value && confirm('مسح كل المحتوى؟')) {
+                this.editor.value = '';
+                this.render();
+                StorageManager.saveContent('');
+            }
+        });
+
+        // Formatting Toolbar
+        document.querySelectorAll('.md-toolbar-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const action = btn.dataset.action;
+                if (action) this.applyMarkdownFormatting(action);
+            });
+        });
+    }
+
+    insertTextAtCursor(textToInsert) {
+        const start = this.editor.selectionStart;
+        const end = this.editor.selectionEnd;
+        const val = this.editor.value;
+        this.editor.value = val.substring(0, start) + textToInsert + val.substring(end);
+        this.editor.selectionStart = this.editor.selectionEnd = start + textToInsert.length;
+        this.editor.focus();
+        this.render(); 
+        StorageManager.saveContent(this.editor.value);
+    }
+
+    applyMarkdownFormatting(action) {
+        const start = this.editor.selectionStart;
+        const end = this.editor.selectionEnd;
+        const val = this.editor.value;
         const sel = val.slice(start, end);
 
-        const replace = (str) => {
-            const newVal = val.slice(0, start) + str + val.slice(end);
-            textarea.value = newVal;
-            textarea.focus();
-            const newCursor = start + str.length;
-            textarea.selectionStart = textarea.selectionEnd = newCursor;
-            this.render();
-            this.saveContent();
-        };
-        
-        // Complex replace keeping selection
         const wrap = (prefix, suffix, defaultText) => {
             const text = sel || defaultText || '';
             const insertion = prefix + text + suffix;
-            textarea.value = val.slice(0, start) + insertion + val.slice(end);
-            textarea.focus();
+            this.editor.value = val.slice(0, start) + insertion + val.slice(end);
+            this.editor.focus();
             if (sel) {
-                // Keep selection highlighted
-                textarea.selectionStart = start + prefix.length;
-                textarea.selectionEnd = start + prefix.length + text.length;
+                this.editor.selectionStart = start + prefix.length;
+                this.editor.selectionEnd = start + prefix.length + text.length;
             } else {
-                // Cursor after insertion
-                textarea.selectionStart = textarea.selectionEnd = start + insertion.length;
+                this.editor.selectionStart = this.editor.selectionEnd = start + insertion.length;
             }
             this.render();
-            this.saveContent();
+            StorageManager.saveContent(this.editor.value);
         };
 
         switch (action) {
@@ -370,62 +473,23 @@ const UI = {
             case 'italic': wrap('*', '*', 'نص مائل'); break;
             case 'inline-code': wrap('`', '`', 'كود'); break;
             case 'h2': 
-                // Always start of line logic for headers
                 const lineStart = val.lastIndexOf('\n', start - 1) + 1;
                 const lineEnd = val.indexOf('\n', end);
                 const actualEnd = lineEnd === -1 ? val.length : lineEnd;
                 const line = val.slice(lineStart, actualEnd);
                 const newLine = line.startsWith('## ') ? line.substring(3) : '## ' + line;
-                textarea.value = val.substring(0, lineStart) + newLine + val.substring(actualEnd);
-                textarea.focus();
+                this.editor.value = val.substring(0, lineStart) + newLine + val.substring(actualEnd);
+                this.editor.focus();
                 this.render();
-                this.saveContent();
+                StorageManager.saveContent(this.editor.value);
                 break;
             case 'ul': wrap('\n- ', '', 'عنصر'); break;
             case 'ol': wrap('\n1. ', '', 'عنصر'); break;
             case 'code-block': wrap('\n```javascript\n', '\n```\n', '// code'); break;
             case 'pagebreak': wrap('\n---page---\n', '', ''); break;
         }
-    },
-
-    saveContent() {
-        try { localStorage.setItem(this.state.storageKeyContent, this.editor.value); } catch (e) {}
-    },
-
-    async loadContent() {
-        try {
-            const saved = localStorage.getItem(this.state.storageKeyContent);
-            if (saved && typeof saved === 'string' && saved.trim().length > 0) {
-                this.editor.value = saved;
-                this.render();
-            } else {
-                try {
-                    const res = await fetch('default.md');
-                    if (!res.ok) throw new Error();
-                    this.editor.value = await res.text();
-                } catch (err) { this.editor.value = '# Welcome'; }
-                this.render();
-            }
-        } catch (e) { this.render(); }
-    },
-
-    saveSettings() {
-        try {
-            const { mT, mB, mL, mR, fontSize, lineHeight, baseDir } = this.state;
-            localStorage.setItem(this.state.storageKeySettings, JSON.stringify({ mT, mB, mL, mR, fontSize, lineHeight, baseDir }));
-        } catch (e) {}
-    },
-
-    loadSettings() {
-        try {
-            const raw = localStorage.getItem(this.state.storageKeySettings);
-            if (!raw) return;
-            const d = JSON.parse(raw);
-            if (d.mT) Object.assign(this.state, d);
-        } catch (e) {}
     }
-};
+}
 
-document.addEventListener('DOMContentLoaded', () => UI.init());
-
-
+// Bootstrap Application
+document.addEventListener('DOMContentLoaded', () => new AppController());

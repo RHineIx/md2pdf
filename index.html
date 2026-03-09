@@ -7,19 +7,16 @@
     
     <link rel="icon" type="image/svg+xml" href="https://raw.githubusercontent.com/RHineIx/md2pdf/refs/heads/main/icon.svg">
     
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Tajawal:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
     
-    <!-- Libraries -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="output.css">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
-    <!-- DOMPurify for Security -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     
-    <!-- Highlight.js -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
@@ -30,43 +27,32 @@
     <link rel="stylesheet" href="style.css">
     
     <style id="dynamic-print-style">
-        @page { size: A4; margin: 20mm; }
+        @page { size: A4 portrait; margin: 20mm; }
         .a4-sheet { padding: 20mm; }
-        :root { --doc-font-size: 12pt; --doc-line-height: 1.7; }
-    </style>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { 
-                        sans: ['Cairo', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace']
-                    }
-                }
-            }
+        :root { 
+            --doc-font-size: 12pt; 
+            --doc-line-height: 1.7; 
+            --page-width: 210mm; 
+            --page-height: 297mm;
+            --doc-font-family: 'Cairo', sans-serif;
         }
-    </script>
+    </style>
 </head>
 <body class="bg-gray-100 text-slate-800 font-['Cairo'] h-screen flex flex-col overflow-hidden">
     
-    <!-- Header -->
     <header class="bg-white shadow-sm border-b z-50 h-16 flex-shrink-0 relative no-print">
         <div class="container mx-auto px-2 sm:px-4 h-full flex justify-between items-center gap-2">
-            <!-- Logo area -->
             <div class="flex items-center gap-2 sm:gap-4 flex-1">
                 <div class="flex items-center gap-2 select-none cursor-pointer" onclick="window.location.reload()">
                     <img src="https://raw.githubusercontent.com/RHineIx/md2pdf/refs/heads/main/icon.svg" alt="Logo" class="w-10 h-10 object-contain">
                     <h1 class="text-lg font-bold text-slate-800 hidden md:block">Markdown Studio</h1>
                 </div>
-                <!-- Mobile Tabs -->
                 <div class="flex lg:hidden bg-gray-100 p-1 rounded-lg ml-auto sm:ml-0">
                     <button id="tab-editor" class="px-3 py-1 text-xs font-bold shadow-sm bg-white text-slate-800 rounded-md transition-all">المحرر</button>
                     <button id="tab-preview" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-700 transition-all">المعاينة</button>
                 </div>
             </div>
             
-            <!-- Actions -->
             <div class="flex items-center gap-1 sm:gap-2">
                 <button id="btn-settings" class="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 text-slate-600 transition" title="إعدادات المستند">
                     <span class="material-symbols-rounded text-xl">tune</span>
@@ -83,13 +69,10 @@
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="flex-grow flex h-[calc(100vh-64px)] relative overflow-hidden">
         
-        <!-- Editor Section -->
         <section id="editor-panel" class="w-full lg:w-1/2 flex flex-col border-l border-slate-200 bg-white absolute lg:relative inset-0 z-10 lg:z-0 transition-transform duration-300 h-full">
             
-            <!-- Toolbar Top -->
             <div class="h-10 border-b bg-gray-50 flex items-center justify-between px-3 no-print flex-shrink-0">
                 <span class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
                     <span class="material-symbols-rounded text-sm">edit_note</span>
@@ -114,9 +97,7 @@
                 </div>
             </div>
 
-            <!-- Toolbar Markdown Actions -->
             <div class="border-b bg-white px-2 sm:px-3 py-1.5 no-print flex flex-wrap gap-1 text-[11px] sm:text-xs shrink-0 z-20 shadow-sm">
-                <!-- Buttons are the same... -->
                 <button class="md-toolbar-btn flex items-center gap-1 px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-50" data-action="bold" title="عريض">
                     <span class="material-symbols-rounded text-sm">format_bold</span>
                 </button>
@@ -145,7 +126,6 @@
                 </button>
             </div>
 
-            <!-- Textarea (Fixed Scroll) -->
             <div class="relative flex-grow h-full w-full overflow-hidden">
                 <textarea id="markdown-input" 
                     class="absolute inset-0 w-full h-full p-5 resize-none focus:outline-none text-slate-700 font-mono text-base leading-relaxed overflow-y-auto custom-scrollbar"
@@ -153,18 +133,16 @@
             </div>
         </section>
 
-        <!-- Preview Section -->
-        <section id="preview-panel" class="w-full lg:w-1/2 bg-slate-100 h-full overflow-y-auto flex flex-col items-center absolute lg:relative inset-0 z-0 lg:z-0 translate-x-full lg:translate-x-0 transition-transform duration-300 custom-scrollbar pb-10">
-            <div class="w-full max-w-[210mm] py-8 px-2 sm:px-6 flex-grow min-h-min">
-                <div id="preview-container" class="a4-sheet bg-white shadow-xl rounded-sm text-slate-900 mx-auto transition-all duration-300 min-h-[297mm]">
+        <section id="preview-panel" class="w-full lg:w-1/2 bg-slate-100 h-full overflow-y-auto flex flex-col items-center absolute lg:relative inset-0 z-0 lg:z-0 translate-x-full lg:translate-x-0 transition-transform duration-300 custom-scrollbar pb-10 overflow-x-auto">
+            <div class="w-full py-8 px-2 sm:px-6 flex-grow min-h-min">
+                <div id="preview-container" class="a4-sheet bg-white shadow-xl rounded-sm text-slate-900 mx-auto transition-all duration-300">
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Settings Modal -->
     <div id="settings-modal" class="fixed inset-0 bg-black/50 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-200">
-        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-200 flex flex-col max-h-[90vh]" id="modal-content">
+        <div class="bg-white w-full max-w-[420px] rounded-2xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-200 flex flex-col max-h-[90vh]" id="modal-content">
             <div class="bg-gray-50 p-4 border-b flex justify-between items-center flex-shrink-0">
                 <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
                     <span class="material-symbols-rounded text-indigo-600">tune</span>
@@ -176,9 +154,32 @@
             </div>
             
             <div class="p-6 space-y-6 overflow-y-auto custom-scrollbar">
-                <!-- Margins -->
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">مقاس الورقة</label>
+                        <select id="input-page-size" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                            <option value="A4">A4 القياسي</option>
+                            <option value="Letter">Letter رسالة</option>
+                            <option value="Legal">Legal قانوني</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">الاتجاه</label>
+                        <select id="input-orientation" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                            <option value="portrait">عمودي</option>
+                            <option value="landscape">أفقي</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr class="border-gray-100">
+
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-3">هوامش الطباعة (mm)</label>
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="block text-sm font-semibold text-gray-700">هوامش الطباعة (mm)</label>
+                        <span class="text-[10px] text-gray-400">اضغط في المنتصف للربط</span>
+                    </div>
                     <div class="visual-margin-editor select-none">
                         <div class="margin-input-wrapper top">
                             <input type="number" id="margin-top" class="margin-input" value="20">
@@ -189,9 +190,10 @@
                                 <input type="number" id="margin-left" class="margin-input" value="20">
                                 <span class="text-[10px] text-gray-400 mt-1">يسار</span>
                             </div>
-                            <div class="mini-a4-preview shadow-sm border bg-white flex items-center justify-center text-gray-300 text-xs font-bold rounded">
-                                A4
-                            </div>
+                            <button id="btn-lock-margins" class="mini-a4-preview shadow-sm border border-gray-200 bg-white flex flex-col items-center justify-center text-gray-400 text-xs font-bold rounded cursor-pointer hover:bg-gray-50 transition" title="ربط / فك الهوامش">
+                                <span id="icon-lock-margins" class="material-symbols-rounded text-lg mb-0.5">link_off</span>
+                                <span id="text-page-preview">A4</span>
+                            </button>
                             <div class="margin-input-wrapper right">
                                 <input type="number" id="margin-right" class="margin-input" value="20">
                                 <span class="text-[10px] text-gray-400 mt-1">يمين</span>
@@ -203,29 +205,43 @@
                         </div>
                     </div>
                 </div>
+
+                <hr class="border-gray-100">
                 
-                <!-- Font Size -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-3">حجم الخط</label>
-                    <div class="flex items-center gap-2">
-                        <input type="number" id="input-font-size" value="12" step="0.5" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-center font-mono text-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
-                        <span class="text-sm font-bold text-gray-500 bg-gray-100 px-3 py-2 rounded-lg border border-gray-200">pt</span>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">نوع الخط</label>
+                        <select id="input-font-family" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                            <option value="'Cairo'">Cairo كيرو</option>
+                            <option value="'Tajawal'">Tajawal تجوال</option>
+                            <option value="Arial">Arial كلاسيكي</option>
+                            <option value="system-ui">خط النظام</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">حجم الخط</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="input-font-size" value="12" step="0.5" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-center font-mono text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+                            <span class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-2 rounded-lg border border-gray-200">pt</span>
+                        </div>
                     </div>
                 </div>
                 
-                <!-- Line Height -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-3">تباعد الأسطر</label>
                     <div class="flex bg-gray-100 p-1 rounded-lg">
                         <button class="setting-btn-line flex-1 py-1.5 text-sm rounded-md transition" data-val="1.4">مضغوط</button>
-                        <button class="setting-btn-line flex-1 py-1.5 text-sm bg-white shadow-sm font-bold text-indigo-700 rounded-md transition" data-val="1.7">مريح</button>
+                        <button class="setting-btn-line flex-1 py-1.5 text-sm bg-white shadow-sm font-bold text-indigo-700 rounded-md transition border border-indigo-100" data-val="1.7">مريح</button>
                         <button class="setting-btn-line flex-1 py-1.5 text-sm rounded-md transition" data-val="2.2">واسع</button>
                     </div>
                 </div>
             </div>
             
-            <div class="p-4 border-t bg-gray-50 text-center flex-shrink-0">
-                <button id="btn-save-settings" class="w-full bg-slate-900 text-white py-2.5 rounded-xl font-bold hover:bg-black transition shadow-lg">تطبيق وإغلاق</button>
+            <div class="p-4 border-t bg-gray-50 flex gap-2 flex-shrink-0">
+                <button id="btn-reset-settings" class="px-4 bg-white text-red-500 rounded-xl hover:bg-red-50 hover:text-red-600 transition shadow-sm border border-gray-200 flex items-center justify-center" title="استعادة الإعدادات الافتراضية">
+                    <span class="material-symbols-rounded">device_reset</span>
+                </button>
+                <button id="btn-save-settings" class="flex-1 bg-slate-900 text-white py-2.5 rounded-xl font-bold hover:bg-black transition shadow-lg">تطبيق وإغلاق</button>
             </div>
         </div>
     </div>
@@ -233,5 +249,3 @@
     <script src="script.js"></script>
 </body>
 </html>
-
-
